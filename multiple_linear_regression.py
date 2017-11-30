@@ -1,3 +1,4 @@
+from sklearn.feature_selection import RFE
 from sklearn.linear_model import LinearRegression
 import pandas as pd
 
@@ -15,10 +16,11 @@ dataset = dataset.drop("id", axis=1)
 X = dataset.iloc[:, [0, *range(2, dataset.shape[1])]].values
 y = dataset.iloc[:, 1].values
 
-# #### Multiple Linear regression ####
+# #### Multiple Linear regression with RFE ####
+# RFE : Recursive Feature Elemination
 lin_reg = LinearRegression()
-lin_reg.fit(X, y)
-
+rfe = RFE(lin_reg, n_features_to_select=5, step=1)
+rfe = rfe.fit(X, y)
 # plot with multiple figures
 row_size = 10
 column_index_view = 14
@@ -36,6 +38,7 @@ for idx_fig in range(len_figs):
     axe.scatter(
         X[indexes, column_index_view],
         lin_reg.predict(X[indexes]),
+        rfe.predict(X[indexes]),
         marker='^'
     )
 
