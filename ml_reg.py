@@ -46,19 +46,15 @@ Y = dataframe.price.values
 len_cols = dataframe_input.columns.__len__()
 nbr_tests = sum(
     len(list(itertools.combinations(range(len_cols), nbr_features))) for
-    nbr_features in range(16, len_cols + 1)
-)
+    nbr_features in range(15, len_cols + 1)
+) * 2
 current_nbr_tests = 0.
 results = []
 
-# In[15]:
-
-
-current_nbr_tests = 0
-start = time()
-for nbr_features in range(16, len_cols + 1):
+start_time = time()
+for nbr_features in range(15, len_cols + 1):
     for indexes_cols in itertools.combinations(range(len_cols), nbr_features):
-        current_nbr_tests += 1
+        current_nbr_tests += 2
         X = dataframe_input.iloc[:, list(indexes_cols)].as_matrix()
         lin_reg = LinearRegression()
         lin_reg.fit(X, Y)
@@ -73,6 +69,21 @@ for nbr_features in range(16, len_cols + 1):
             'algo': "Linear Regression",
             'adj_r2': adj_r2
         })
+        # Decision tree regression
+        tree_regressor = DecisionTreeRegressor(random_state=0)
+        tree_regressor.fit(X, Y)
+        adj_r2 = statistic.adjusted_r2(
+            lin_reg.score(X, Y),
+            X.shape[1],
+            X.shape[0]
+        ) * 100.
+        results.append({
+            'index_test': current_nbr_tests,
+            'indexes_cols': indexes_cols,
+            'algo': "tree",
+            'adj_r2': adj_r2
+        })
+        # progression
         progress_value = current_nbr_tests * 100. / nbr_tests
         sys.stdout.write("\r")
         sys.stdout.write("Progression |%-100s| %.2f %%" %
@@ -85,6 +96,8 @@ best_lin_reg = min(
     filter(lambda d: d['adj_r2'] == max_adj_r2, results),
     key=lambda d: len(d['indexes_cols'])
 )
-end = time()
-print("\ntime %.2f seconds" % (end - start))
-
+end_time = time()
+print("\ntime %.2f seconds" % (end_time - start_time))
+print("\nThe best Adjusted R² is %.2f %%" % max_adj_r2)
+print("The duration of execution : %.2f seconds" % (end_time - start_time))
+print("Number of tests = %d tests" % results.__len__())
