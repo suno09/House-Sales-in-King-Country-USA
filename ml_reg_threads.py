@@ -7,8 +7,11 @@ import itertools
 import statistic
 from time import time
 import sys
-from threading import Thread
+from threading import Thread, Lock
 from queue import Queue
+
+
+print_lock = Lock()
 
 
 def thread_lin_reg(nbr_tests, indexes_cols, data_pandas, X, Y,
@@ -40,11 +43,12 @@ def thread_lin_reg(nbr_tests, indexes_cols, data_pandas, X, Y,
     })
 
     progress_value = queue.qsize() * 100. / nbr_tests
-    sys.stdout.write("\r")
-    sys.stdout.write("Progression |%-100s| %.2f %%" %
-                     ("\u2588" * int(progress_value), progress_value)
-                     )
-    sys.stdout.flush()
+    with print_lock:
+        sys.stdout.write("\r")
+        sys.stdout.write("Progression |%-100s| %.2f %%" %
+                         ("\u2588" * int(progress_value), progress_value)
+                         )
+        sys.stdout.flush()
 
 
 print()
