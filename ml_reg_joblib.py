@@ -7,22 +7,24 @@ import itertools
 import statistic
 from time import time
 import sys
-from threading import Thread
-from queue import Queue
+from joblib import Parallel, delayed
+
+index_test = 0
 
 
-def thread_lin_reg(nbr_tests, indexes_cols, data_pandas, X, Y,
-                   queue: Queue):
+def thread_lin_reg(nbr_tests, indexes_cols, data_pandas, X, Y):
     """
     parameters in keys:
+    :param index_test: consider the id (number of test) of thread
     :param nbr_tests: nbr of all threads
     :param indexes_cols: the list of chosen columns indexes
     :param data_pandas: the data in DataFrame type of pandas library
     :param X: matrix of input if exist
     :param Y: matrix of output if exist
-    :param queue: queue which save the result
     """
     # print(index_test)
+    global index_test
+    index_test += 1
     if X is None:
         X = data_pandas.iloc[:, list(indexes_cols)].as_matrix()
     lin_reg = LinearRegression()
@@ -33,13 +35,23 @@ def thread_lin_reg(nbr_tests, indexes_cols, data_pandas, X, Y,
         X.shape[0]
     ) * 100.
 
-    queue.put({
+    show_progress(nbr_tests)
+
+    return {
+        'index_test': index_test,
         'indexes_cols': indexes_cols,
         'algo': "Linear Regression",
         'adj_r2': adj_r2
-    })
+    }
 
-    progress_value = queue.qsize() * 100. / nbr_tests
+
+progress = 0
+
+
+def show_progress(total):
+    global progress
+    progress += 1
+    progress_value = progress * 100. / total
     sys.stdout.write("\r")
     sys.stdout.write("Progression |%-100s| %.2f %%" %
                      ("\u2588" * int(progress_value), progress_value)
@@ -48,8 +60,6 @@ def thread_lin_reg(nbr_tests, indexes_cols, data_pandas, X, Y,
 
 
 print()
-queue = Queue()
-threads_lin_reg = []
 
 # read csv file and show head
 dataframe = pd.read_csv('kc_house_data.csv')
@@ -67,27 +77,16 @@ nbr_tests = sum(
     nbr_features in range(16, len_cols + 1)
 )
 
-for nbr_features in range(16, len_cols + 1):
-    for indexes_cols in itertools.combinations(range(len_cols), nbr_features):
-        threads_lin_reg.append(
-            Thread(
-                target=thread_lin_reg,
-                args=(
-                    nbr_tests,
-                    indexes_cols,
-                    dataframe_input,
-                    None,
-                    Y,
-                    queue
-                )
-            )
-        )
-
 start_time = time()
 
-_ = [thread.start() for thread in threads_lin_reg]
-_ = [thread.join() for thread in threads_lin_reg]
-results = [queue.get() for _ in range(threads_lin_reg.__len__())]
+results = Parallel(n_jobs=1)(
+    delayed(thread_lin_reg)(
+        nbr_tests, indexes_cols, dataframe_input, None, Y
+    )
+    for nbr_features in range(16, len_cols + 1)
+    for indexes_cols in itertools.combinations(range(len_cols), nbr_features)
+)
+
 end_time = time()
 
 max_adj_r2 = max([d['adj_r2'] for d in results])

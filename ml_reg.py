@@ -12,8 +12,6 @@ import itertools
 import statistic
 from time import time
 import sys
-from threading import Thread
-from queue import Queue
 
 # In[6]:
 
